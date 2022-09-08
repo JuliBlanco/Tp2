@@ -1,18 +1,38 @@
 #include "common.h"
 
-//Aclaración: **para clarificar terminos**, dividimos la matriz en 4 partes horizontales. Al referirnos al primer
-//cuarto, hacemos referencia al 1ro contando desde arriba hacia abajo. A medida que vamos bajando, 
-//cambiamos de cuarto y al siguiente lo llamamos segundo, al siguente tercero y al ultimo de todos cuarto.
 
-//En esta parte del codigo damos las instrucciones que deberá ejecutar el 1er hilo, al cual le decimos que
-//realice la difusion del calor (sacar el promedio) comenzando en la columna 0 hasta el final de estas, esta 
-//instruccion coincidira con la de todos los hilos ya que la distribución es horizontal, así que necesariamente
-//todos los hilos deben recorrer todas las columnas.
+//Realizamos la escritura de las instrucciones que ejecutará el primer hilo que crearemos en un futuro, 
+//al cual le decimos que realice la difusion del calor (sacar el promedio) comenzando en la columna 0 hasta el 
+//final de estas, esta instruccion coincidirá con la de todos los hilos ya que la distribución es horizontal, así
+//que necesariamente todos los hilos deben recorrer todas las columnas.
 //La instruccion que le dimos con respecto a las filas es que comience en la fila 0 (en realidad comienza en la 1)
 //y realice la difusion hasta llegar a un cuarto de las filas totales. El +1 lo pusimos para que luego, el
 //siguiente hilo pise la ultima fila de este hilo.
 static void* diff1(void* arg){
     cicloDiffusion(0, MAXCOLUMNAS, 0, MAXFILAS/4+1);
+    return 0;
+}
+
+
+//Realizamos la escritura de las instrucciones que ejecutará el segundo hilo que crearemos en un futuro.
+//Como ya dijimos, al igual que los demas hilos, este recoreá desde la columna 0 hasta el final de las columnas.
+//Las filas las recorrerá desde donde comienza el 2do cuarto y llegara hasta la mitad de las filas totales.
+//En los parametros escribimos un mas dos, porque al ser un hilo del centro, queremos que pise
+//sus filas exteriores con la de sus hilos limitrofes (como tiene 2, uno por arriba y otro por abajo, le 
+//sumamos 2) 
+static void* diff2(void* arg){
+    cicloDiffusion(0, MAXCOLUMNAS, MAXFILAS/4-1, MAXFILAS/4+2);
+    return 0;
+}
+
+
+//Realizamos la escritura de las instrucciones que ejecutará el tercer hilo que crearemos en un futuro.
+//Hará la difusion de calor desde la columana 0 hasta el final de ellas.
+//La difusion de calor la hará desde la mitad total de las filas hasta terminar el tercer cuarto. Como
+//queremos que se pase uno por arriba y otro por debajo, le sumamos 2 al paramentro de ycount. Y asi 
+//se pisará una fila con el hilo de arriba de este y otra con el de debajo.
+static void* diff3(void* arg){
+    cicloDiffusion(0, MAXCOLUMNAS, MAXFILAS/2-1, MAXFILAS/4+2);
     return 0;
 }
 
@@ -33,43 +53,25 @@ int main() {
 
         // (2.3) Hago la difusion en cuatro procesos distintos
 
-        //Creamos otro hilo cuyo PID se guardará en la direccion de thread1, sin atributo y direccionandose 
-        //a la rutina descripta por fuera del main (diff1).
-        //Como ya dijimos, al igual que los demas hilos, este recoreá desde la columna 0 hasta el final de las columnas.
-        //Las filas las recorrerá desde donde comienza el 2do cuarto y llegara hasta la mitad de las filas totales.
-        //En los parametros escribimos un mas dos, porque al ser un termino del centro, queremos que pise
-        //sus filas exteriores con la de sus hilos limitrofes (como tiene 2, uno por arriba y otro por abajo, le 
-        //sumamos 2) 
+
+        //Creamos los hilos(3) a los cuales se les asigan 1ro un puntero hacia donde se guardará su PID 
+        //correspondientemente y tambien les pasamos un puntero a la rutina que deberan ejecutar; cada uno 
+        //con su rutina correspondiente
         pthread_create(&thread1, NULL, diff1, NULL);
-        cicloDiffusion(0, MAXCOLUMNAS, MAXFILAS/4-1, MAXFILAS/4+2);
+        pthread_create(&thread2, NULL, diff2, NULL);
+        pthread_create(&thread3, NULL, diff3, NULL);
 
-        //Realizamos un join para que espere a que el thread 1 acabe su ejecucion para seguir.
-        pthread_join(thread1, NULL);
-
-        //Aqui creamos otro hilo cuyo PID se guardará en la direccion de thread2, sin atributo y direccionandose 
-        //a la rutina descripta por fuera del main (diff1).
-        //Hará la difusion de calor desde la columana 0 hasta el final de ellas.
-        //La difusion de calor la hará desde la mitad total de las filas hasta terminar el tercer cuarto. Como
-        //queremos que se pase uno por arriba y otro por debajo, le sumamos 2 al paramentro de ycount. Y asi 
-        //se pisara una fila con el hilo 1 y otra con el 3.
-        pthread_create(&thread2, NULL, diff1, NULL);
-        cicloDiffusion(0, MAXCOLUMNAS, MAXFILAS/2-1, MAXFILAS/4+2);
-
-
-        //Reakizamos un join para que espere a que el thread 2 acabe su ejecucion para seguir.
-        pthread_join(thread2, NULL);
-
-
-        //Creamos un ultimo hilo con las caracteristicas de los anteriores pero ahora el PID apunta a la direccion
-        //de thread3.
+        //Realizamos el ultimo ciclo difusion que:
         //Recorrerá todas las columnas para hacer la difusion de calor e irá desde donde comienza el cuarto cuarto
         //y recorrerá hasta el final de las filas. Escribimos un + 1 para que pise la ultima fila del hilo anterior
-        pthread_create(&thread3, NULL, diff1, NULL);
         cicloDiffusion(0, MAXCOLUMNAS, (MAXFILAS/4)*3-1, MAXFILAS/4+1);
 
-        //Espera a que el hilo 3 termine su ejecucion para acabar el ciclo
-        pthread_join(thread3, NULL);
 
+        //Realizamos los joins que lo que nos indican que la funcion no se detiene hasta que tanto el thread 1,
+        //como el 2 y el 3 acaben su ejecucion.
+        pthread_join(thread1, NULL);
+        pthread_join(thread2, NULL);
+        pthread_join(thread3, NULL);
 
 
     }
